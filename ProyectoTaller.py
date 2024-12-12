@@ -3,24 +3,33 @@ import numpy as np
 import os
 import matplotlib.pyplot as plt
 import seaborn as sns
-from sklearn.model_selection import train_test_split, cross_val_score 
+from sklearn.model_selection import train_test_split, cross_val_score
 from sklearn.preprocessing import StandardScaler
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.linear_model import LinearRegression
 from sklearn.neighbors import KNeighborsRegressor
 from sklearn.svm import SVR
 from sklearn.metrics import mean_squared_error, r2_score, mean_absolute_error
+from sklearn.neural_network import MLPRegressor
 import tkinter as tk
 from tkinter import ttk, messagebox, simpledialog, Scrollbar, Canvas, Frame
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from tkinter import Label
+from tkinter import StringVar
+import os
 
 # Configuración de estilo para gráficos
 sns.set(style="whitegrid")
+# Obtener la ruta del directorio actual
+current_dir = os.path.dirname(os.path.abspath(__file__))
 
-# Definir rutas a los archivos
-grades_file_path = r"C:\Users\aylin\OneDrive\Escritorio\Taller integrado de datos\Taller integrado de datos\Data\StudentGrades.txt"
-root_dir = r"C:\Users\aylin\OneDrive\Escritorio\Taller integrado de datos\Taller integrado de datos\Data\Data"  # Asegúrate de que esta ruta sea correcta
+# Rutas relativas basadas en el directorio actual
+grades_file_path = os.path.join(current_dir, "Data", "StudentGrades.txt")
+root_dir = os.path.join(current_dir, "Data", "Data")
+
+# Verificar las rutas generadas
+print("Ruta de calificaciones:", grades_file_path)
+print("Ruta de datos:", root_dir)
 
 # Leer las calificaciones y organizar los datos correctamente
 def read_grades(file_path):
@@ -58,7 +67,7 @@ def mostrar_calificaciones(grades_data):
 
 # Leer y mostrar las calificaciones
 grades_data = read_grades(grades_file_path)
-mostrar_calificaciones(grades_data)
+print(grades_data)
 
 # Crear el diccionario para almacenar los DataFrames
 dfs = {}
@@ -123,10 +132,8 @@ print(f"Archivos fallidos: {failed_reads}")
 
 # Mostrar las claves almacenadas en el diccionario dfs
 print("\nArchivos almacenados en el diccionario 'dfs':")
-for key in dfs.keys():
-    print(f"  {key}")
-
-from tkinter import StringVar
+for key, df in dfs.items():
+    print(f"\n{key}")
 
 class DataAnalysisApp:
     def __init__(self, root):
@@ -151,7 +158,6 @@ class DataAnalysisApp:
             ("Tendencias por Participante", self.plot_tendencias),
             ("Datos Contextuales - Rendimiento Académico", self.plot_rendimiento_academico),
             ("Boxplots de Variables Fisiológicas", self.plot_boxplots_variables),
-            ("Mapa de Correlación", self.plot_correlation_variables_fisiologicas),
             ("Técnicas Estadísticas para Resumir Hallazgos", self.tecnicas_estadisticas),
             ("Detección de Valores Atípicos", self.plot_outliers_detection),
             ("Modelado Predictivo", self.modelado_predictivo),
@@ -202,6 +208,7 @@ class DataAnalysisApp:
 
         # Botón para confirmar la selección y mostrar el gráfico
         def confirmar_seleccion():
+            self.clear_canvas()
             participante = participante_var.get()
             examen = examen_var.get()
             variable = variable_var.get()
@@ -211,14 +218,7 @@ class DataAnalysisApp:
                 messagebox.showerror("Error", "Debe seleccionar todos los campos.")
                 return
 
-            # Verificar el contenido de grades_data
-            print("Datos en grades_data:")
-            print(grades_data)
-
             fig, ax = plt.subplots(figsize=(14, 8))
-            fig.subplots_adjust(right=0.85)  # Espacio para agregar calificaciones
-
-            calificaciones = []
 
             def plot_acc_data(df, label):
                 """Graficar los datos de ACC (tres ejes)."""
@@ -238,7 +238,6 @@ class DataAnalysisApp:
             if examen == "Todos":
                 for subfolder in ["Final", "Midterm 1", "Midterm 2"]:
                     key = f"{participante}_{subfolder}_{variable}"
-                    print(f"Buscando clave en dfs: {key}")  # Imprimir la clave buscada en dfs
                     if key in dfs:
                         df = dfs[key]
                         if variable == "ACC":
@@ -247,23 +246,9 @@ class DataAnalysisApp:
                             plot_ibi_data(df, subfolder)
                         else:
                             plot_default_data(df, subfolder)
-
-                        # Consulta de calificación
-                        print(f"Consulta de calificación para {subfolder}:")
-                        print(f" - Filtro: Participant={participante}, Exam={subfolder}")
-                        calificacion = grades_data.loc[
-                            (grades_data['Participant'] == participante) &
-                            (grades_data['Exam'].str.lower() == subfolder.lower()), 'Grade'
-                        ]
-                        print(f" - Resultados: {calificacion}")  # Mostrar los resultados de la consulta
-                        if not calificacion.empty:
-                            calificaciones.append((subfolder, calificacion.values[0]))
-                    else:
-                        print(f"Clave no encontrada en dfs: {key}")
                 ax.set_title(f'Tendencia de {variable} para {participante} en todos los exámenes')
             else:
                 key = f"{participante}_{examen}_{variable}"
-                print(f"Buscando clave en dfs: {key}")  # Imprimir la clave buscada en dfs
                 if key in dfs:
                     df = dfs[key]
                     if variable == "ACC":
@@ -272,25 +257,7 @@ class DataAnalysisApp:
                         plot_ibi_data(df, examen)
                     else:
                         plot_default_data(df, examen)
-
-                    # Consulta de calificación
-                    print(f"Consulta de calificación para {examen}:")
-                    print(f" - Filtro: Participant={participante}, Exam={examen}")
-                    calificacion = grades_data.loc[
-                        (grades_data['Participant'] == participante) &
-                        (grades_data['Exam'].str.lower() == examen.lower()), 'Grade'
-                    ]
-                    print(f" - Resultados: {calificacion}")  # Mostrar los resultados de la consulta
-                    if not calificacion.empty:
-                        calificaciones.append((examen, calificacion.values[0]))
-                else:
-                    print(f"Clave no encontrada en dfs: {key}")
                 ax.set_title(f'Tendencia de {variable} para {participante} en el {examen}')
-
-            # Mostrar las calificaciones encontradas
-            print(f"Calificaciones calculadas para {participante}: {calificaciones}")
-            if not calificaciones:
-                print(f"Calificaciones para {participante}: No hay calificaciones disponibles.")
 
             ax.set_xlabel('Tiempo', fontsize=12)
             ax.set_ylabel(variable, fontsize=12)
@@ -320,6 +287,7 @@ class DataAnalysisApp:
 
         # Botón para confirmar la selección y mostrar la tabla estadística
         def confirmar_seleccion():
+            self.clear_canvas()
             participante = participante_var.get()
 
             # Validar la entrada del participante
@@ -404,6 +372,7 @@ class DataAnalysisApp:
 
         # Botón para confirmar la selección y mostrar el gráfico de boxplot
         def confirmar_seleccion():
+            self.clear_canvas()
             variable = variable_var.get()
             data = []
 
@@ -420,60 +389,6 @@ class DataAnalysisApp:
             self.current_canvas.draw()
             self.current_canvas.get_tk_widget().pack(expand=True, fill=tk.BOTH)
             plt.close(fig)
-
-        ttk.Button(select_frame, text="Confirmar Selección", command=confirmar_seleccion).pack(pady=10)
-
-    def plot_correlation_variables_fisiologicas(self):
-        self.clear_canvas()
-
-        # Crear un marco para los menús desplegables y el botón de confirmación
-        select_frame = Frame(self.graph_frame, bg='#ffffff')
-        select_frame.pack(pady=20)
-
-        # Variables para almacenar la selección del participante y del examen
-        participante_var = StringVar()
-        examen_var = StringVar()
-
-        # Combobox para seleccionar el participante
-        ttk.Label(select_frame, text="Seleccione un participante:", background='#ffffff').pack(pady=5)
-        participante_combobox = ttk.Combobox(select_frame, textvariable=participante_var)
-        participante_combobox['values'] = [f"S{i}" for i in range(1, 11)] + ["Todos"]
-        participante_combobox.pack()
-
-        # Combobox para seleccionar el examen
-        ttk.Label(select_frame, text="Seleccione el tipo de examen:", background='#ffffff').pack(pady=5)
-        examen_combobox = ttk.Combobox(select_frame, textvariable=examen_var)
-        examen_combobox['values'] = ["Final", "Midterm 1", "Midterm 2", "Todos"]
-        examen_combobox.pack()
-
-        # Botón para confirmar la selección y mostrar el gráfico de correlación
-        def confirmar_seleccion():
-            participante = participante_var.get()
-            examen = examen_var.get()
-
-            data_list = []
-
-            # Recorrer los datos y filtrarlos según la selección del usuario
-            for key, df in dfs.items():
-                participant, exam, variable = key.split('_')
-                if (participante == "Todos" or participante == participant) and (examen == "Todos" or examen == exam):
-                    physiological_data = {'Participant': participant, 'Exam': exam, variable: df.iloc[:, 0].mean()}
-                    data_list.append(physiological_data)
-
-            df_combined = pd.DataFrame(data_list)
-            df_pivot = df_combined.pivot_table(index=['Participant', 'Exam'], values=["TEMP", "EDA", "HR", "BVP", "ACC", "IBI"])
-            df_numeric = df_pivot.dropna()
-
-            if not df_numeric.empty and df_numeric.shape[1] > 1:
-                fig, ax = plt.subplots(figsize=(10, 6))
-                sns.heatmap(df_numeric.corr(), annot=True, cmap='coolwarm', ax=ax)
-                ax.set_title('Correlación entre Variables Fisiológicas')
-                self.current_canvas = FigureCanvasTkAgg(fig, master=self.graph_frame)
-                self.current_canvas.draw()
-                self.current_canvas.get_tk_widget().pack(expand=True, fill=tk.BOTH)
-                plt.close(fig)
-            else:
-                messagebox.showinfo("Información", "No hay suficientes datos para calcular la correlación.")
 
         ttk.Button(select_frame, text="Confirmar Selección", command=confirmar_seleccion).pack(pady=10)
 
@@ -502,6 +417,7 @@ class DataAnalysisApp:
 
         # Botón para confirmar la selección y mostrar el gráfico de outliers
         def confirmar_seleccion():
+            self.clear_canvas()
             participante = participante_var.get()
             variable = variable_var.get()
 
@@ -531,59 +447,88 @@ class DataAnalysisApp:
 
         ttk.Button(select_frame, text="Confirmar Selección", command=confirmar_seleccion).pack(pady=10)
 
+    def extract_features(self, df):
+        # Características estadísticas
+        mean = df.iloc[:, 0].mean()
+        std = df.iloc[:, 0].std()
+        max_val = df.iloc[:, 0].max()
+        min_val = df.iloc[:, 0].min()
+
+        # Cambios bruscos: variación absoluta entre valores consecutivos
+        abs_diff = df.iloc[:, 0].diff().abs()
+        max_abs_diff = abs_diff.max()
+        mean_abs_diff = abs_diff.mean()
+
+        return pd.Series({
+            "mean": mean,
+            "std": std,
+            "max": max_val,
+            "min": min_val,
+            "max_abs_diff": max_abs_diff,
+            "mean_abs_diff": mean_abs_diff
+        })
+
     def modelado_predictivo(self):
         self.clear_canvas()
-        # Verificar si existen los datos requeridos
-        available_keys = [key for key in dfs if "TEMP" in key or "EDA" in key or "ACC" in key]
 
+        # Verificar si existen los datos requeridos en dfs
+        available_keys = [key for key in dfs if "TEMP" in key or "EDA" in key or "BVP" in key]
+        
+        # Verificar que hay datos disponibles
         if len(available_keys) < 2:
             messagebox.showerror("Error", "Datos insuficientes: Se necesitan al menos dos variables fisiológicas para proceder con el modelado.")
             return
-
+        
         try:
-            # Agregar extracción de características (Media, Max, Min, STD)
-            def extract_features(df):
-                return pd.Series({
-                    "mean": df.iloc[:, 0].mean(),
-                    "std": df.iloc[:, 0].std(),
-                    "max": df.iloc[:, 0].max(),
-                    "min": df.iloc[:, 0].min()
-                })
-
+            # Lista para almacenar las características extraídas
             features = []
             for key in available_keys:
-                df = dfs[key]
+                df = dfs[key]  # Acceder a los datos fisiológicos
                 participant, exam, variable = key.split('_')
-                feature_row = extract_features(df)
+                feature_row = self.extract_features(df) 
                 feature_row["Participant"] = participant
-                feature_row["Exam"] = exam
+                feature_row["Exam"] = exam.upper()  # Asegurarse de que el nombre del examen esté en mayúsculas
                 feature_row["Variable"] = variable
                 features.append(feature_row)
-
-            df_features = pd.DataFrame(features)
-            df_features_pivot = df_features.pivot_table(index=["Participant", "Exam"], columns="Variable", values=["mean", "std", "max", "min"]).reset_index()
-            df_features_pivot.columns = ['_'.join(col).strip() for col in df_features_pivot.columns.values]
-
-            # Preparar los datos finales para el entrenamiento
-            merged_data = df_features_pivot.merge(grades_data, left_on=['Participant_', 'Exam_'], right_on=['Participant', 'Exam'], how='inner')
             
+            # Convertir las características extraídas en un DataFrame
+            df_features = pd.DataFrame(features)
+
+            print(df_features)
+
+            # Eliminar ceros a la izquierda en grades_data para que coincidan con el formato de dfs
+            grades_data['Participant'] = grades_data['Participant'].apply(lambda x: f"S{int(x[1:]):d}")  # Convierte 'S01' -> 'S1', 'S02' -> 'S2'
+            grades_data['Exam'] = grades_data['Exam'].str.strip()
+
+            print(grades_data)
+
+            # Fusionar las características fisiológicas con las calificaciones
+            merged_data = df_features.merge(grades_data, left_on=['Participant', 'Exam'], right_on=['Participant', 'Exam'], how='inner')
+
+            print(merged_data)
+
+            # Verificar que no haya datos vacíos después de la fusión
             if merged_data.empty:
                 messagebox.showerror("Error", "No se encontraron datos coincidentes entre las características fisiológicas y las calificaciones.")
                 return
-
-            X = merged_data.drop(columns=['Participant_', 'Exam_', 'Participant', 'Exam', 'Grade'])
+            
+            # Definir las características (X) y la variable objetivo (y)
+            X = merged_data.drop(columns=['Participant', 'Exam', 'Variable', 'Grade'])  # Eliminar columnas no numéricas
             y = merged_data['Grade']
 
-            # Restablecer índices
+            # Asegurarse de que X contiene solo valores numéricos
+            X = X.select_dtypes(include=[np.number])  # Mantener solo las columnas numéricas
+
+            # Restablecer índices para asegurarse de que los datos estén bien alineados
             X.reset_index(drop=True, inplace=True)
             y.reset_index(drop=True, inplace=True)
 
-            # Comprobar si hay datos después de la limpieza
+            # Comprobar si los datos de entrada están vacíos después de la limpieza
             if X.empty or y.empty:
                 messagebox.showerror("Error", "Los datos de entrada están vacíos después de la limpieza. No se puede continuar con el modelado.")
                 return
 
-            # Separar datos en entrenamiento y prueba
+            # Separar los datos en entrenamiento y prueba
             X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
             # Normalizar los datos
@@ -596,12 +541,15 @@ class DataAnalysisApp:
                 "Random Forest Regressor": RandomForestRegressor(n_estimators=100, random_state=42),
                 "Linear Regression": LinearRegression(),
                 "KNN Regressor": KNeighborsRegressor(n_neighbors=5),
-                "Support Vector Regressor": SVR(kernel='rbf')
+                "Support Vector Regressor": SVR(kernel='rbf'),
+                "Neural Network (MLP)": MLPRegressor(hidden_layer_sizes=(100,), max_iter=5000, learning_rate_init=0.001, random_state=42)
             }
 
             results = []
+            fig, axs = plt.subplots(len(models), 1, figsize=(10, 6 * len(models)))
 
-            for model_name, model in models.items():
+            # Entrenamiento y evaluación de modelos
+            for i, (model_name, model) in enumerate(models.items()):
                 scores = cross_val_score(model, X_train, y_train, cv=5, scoring='r2')
                 model.fit(X_train, y_train)
                 y_pred = model.predict(X_test)
@@ -613,20 +561,26 @@ class DataAnalysisApp:
 
                 results.append((model_name, mse, r2, mae, avg_cv_r2))
 
+                # Gráfico Real vs Predicción para cada modelo
+                ax = axs[i]
+                ax.scatter(y_test, y_pred, s=100, alpha=0.7, edgecolor="w")
+                ax.plot([y_test.min(), y_test.max()], [y_test.min(), y_test.max()], 'k--', lw=4)
+                ax.set_xlabel('Calificaciones Reales', fontsize=12)
+                ax.set_ylabel('Calificaciones Predichas', fontsize=12)
+                ax.set_title(f'Real vs Predicción - {model_name}', fontsize=16)
+                ax.grid(True)
+
+                # Guardar el gráfico como imagen para descarga
+                fig.savefig(f"{model_name.replace(' ', '_')}_real_vs_pred.png")
+
+            # Mostrar los resultados
             result_text = "Resultados del Modelado Predictivo:\n"
             for model_name, mse, r2, mae, avg_cv_r2 in results:
                 result_text += f"\nModelo: {model_name}\nMSE: {mse:.2f}\nR2 Score: {r2:.2f}\nMAE: {mae:.2f}\nCV R2 Score: {avg_cv_r2:.2f}\n"
 
             messagebox.showinfo("Resultados del Modelado", result_text)
 
-            fig, ax = plt.subplots(figsize=(10, 6))
-            y_pred = models["Random Forest Regressor"].predict(X_test)
-            ax.scatter(y_test, y_pred, s=100, alpha=0.7, edgecolor="w")
-            ax.plot([y_test.min(), y_test.max()], [y_test.min(), y_test.max()], 'k--', lw=4)
-            ax.set_xlabel('Calificaciones Reales', fontsize=12)
-            ax.set_ylabel('Calificaciones Predichas', fontsize=12)
-            ax.set_title('Real vs Predicción - Calificaciones (Random Forest)', fontsize=16)
-            ax.grid(True)
+            # Mostrar los gráficos en la interfaz
             self.current_canvas = FigureCanvasTkAgg(fig, master=self.graph_frame)
             self.current_canvas.draw()
             self.current_canvas.get_tk_widget().pack(expand=True, fill=tk.BOTH)
